@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ClaudeAPIKey</key>
+	<string></string>
+	<key>OllamaServerURL</key>
+	<string>http://localhost:11434</string>
+	<key>OllamaModel</key>
+	<string>qwen2.5</string>
+</dict>
+</plist>
