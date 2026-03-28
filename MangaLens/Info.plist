@@ -22,10 +22,27 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- Camera: scanning manga panels -->
 	<key>NSCameraUsageDescription</key>
 	<string>MangaLens needs camera access to scan manga panels and detect Japanese or Korean text for translation.</string>
+
+	<!-- Photos: selecting screenshots to translate -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>MangaLens needs photo library access to select manga screenshots for translation.</string>
+
+	<!-- Photos: saving translated screenshots -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>MangaLens can save annotated screenshots with translation overlays to your photo library.</string>
+
+	<!-- Microphone: ReplayKit captures audio alongside screen video -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>MangaLens uses your microphone as part of iOS screen recording (ReplayKit). No audio is stored or transmitted.</string>
+
+	<!-- Screen recording: live translation via ReplayKit -->
+	<key>NSReplayKitUsageDescription</key>
+	<string>MangaLens records your screen to detect and translate manga speech bubbles in real time. No recording is saved or shared.</string>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

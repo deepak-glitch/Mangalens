@@ -13,14 +13,15 @@ struct ScanView: View {
     @State private var showResults = false
 
     enum ScanTab: String, CaseIterable {
-        case camera = "Camera"
+        case camera    = "Camera"
         case screenshot = "Screenshot"
+        case live      = "Live"
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Tab Selector
+                // Tab picker
                 Picker("Scan Mode", selection: $selectedTab) {
                     ForEach(ScanTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -30,7 +31,6 @@ struct ScanView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 12)
 
-                // Content
                 ZStack {
                     switch selectedTab {
                     case .camera:
@@ -41,16 +41,23 @@ struct ScanView: View {
                             photoPickerItem: $photoPickerItem,
                             onTranslate: handleTranslate
                         )
+                    case .live:
+                        LiveScanView()
+                            .environmentObject(manager)
                     }
 
-                    // Loading overlay
-                    if manager.isTranslating {
+                    // Loading overlay (camera / screenshot only)
+                    if manager.isTranslating && selectedTab != .live {
                         loadingOverlay
                     }
 
-                    // Results overlay
-                    if showResults, let image = capturedImage, !manager.currentResults.isEmpty {
-                        resultsOverlay(image: image)
+                    // Results overlay (camera / screenshot)
+                    if showResults,
+                       let image = capturedImage,
+                       !manager.currentResults.isEmpty,
+                       selectedTab != .live {
+                        TranslationOverlayView(image: image, results: manager.currentResults)
+                            .ignoresSafeArea(edges: .bottom)
                     }
                 }
             }
@@ -59,11 +66,11 @@ struct ScanView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") {
+                        Task { if manager.isLiveMode { await manager.stopLiveMode() } }
                         dismiss()
                     }
                 }
-
-                if showResults && !manager.currentResults.isEmpty {
+                if showResults && !manager.currentResults.isEmpty && selectedTab != .live {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Save") {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -77,6 +84,12 @@ struct ScanView: View {
             } message: {
                 Text(manager.errorMessage ?? "")
             }
+            .onChange(of: selectedTab) { _, newTab in
+                // Stop live mode if user switches away from Live tab
+                if newTab != .live && manager.isLiveMode {
+                    Task { await manager.stopLiveMode() }
+                }
+            }
         }
     }
 
@@ -84,30 +97,15 @@ struct ScanView: View {
 
     private var loadingOverlay: some View {
         ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-
+            Color.black.opacity(0.45).ignoresSafeArea()
             VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.4)
-                    .tint(.white)
-
-                Text("Translating...")
-                    .foregroundColor(.white)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                ProgressView().scaleEffect(1.4).tint(.white)
+                Text("Translating...").foregroundColor(.white).font(.subheadline).fontWeight(.medium)
             }
             .padding(28)
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
-    }
-
-    // MARK: - Results Overlay
-
-    private func resultsOverlay(image: UIImage) -> some View {
-        TranslationOverlayView(image: image, results: manager.currentResults)
-            .ignoresSafeArea(edges: .bottom)
     }
 
     // MARK: - Handlers
@@ -173,16 +171,18 @@ private struct ScreenshotTabView: View {
             }
 
             PhotosPicker(selection: $photoPickerItem, matching: .images) {
-                Label(capturedImage == nil ? "Select from Photos" : "Choose Different Photo",
-                      systemImage: "photo.badge.plus")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.blue)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(14)
-                    .padding(.horizontal)
+                Label(
+                    capturedImage == nil ? "Select from Photos" : "Choose Different Photo",
+                    systemImage: "photo.badge.plus"
+                )
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.blue)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(14)
+                .padding(.horizontal)
             }
             .onChange(of: photoPickerItem) { _, newItem in
                 Task {
@@ -208,27 +208,17 @@ private struct CameraTabView: View {
         ZStack {
             CameraPreview(onCapture: onCapture)
                 .ignoresSafeArea(edges: .bottom)
-
-            // Corner bracket guide overlay
-            CornerBracketsView()
-                .padding(40)
-
-            // Capture button
+            CornerBracketsView().padding(40)
             VStack {
                 Spacer()
                 Button {
-                    // Capture is triggered via CameraPreview coordinator
                     NotificationCenter.default.post(name: .capturePhoto, object: nil)
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 } label: {
                     Circle()
                         .fill(Color.white)
                         .frame(width: 72, height: 72)
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.5), lineWidth: 4)
-                                .frame(width: 84, height: 84)
-                        )
+                        .overlay(Circle().stroke(Color.white.opacity(0.5), lineWidth: 4).frame(width: 84, height: 84))
                 }
                 .padding(.bottom, 40)
             }
@@ -242,9 +232,7 @@ private struct CameraPreview: UIViewRepresentable {
 
     let onCapture: (UIImage) -> Void
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onCapture: onCapture)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(onCapture: onCapture) }
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView(frame: .zero)
@@ -255,12 +243,9 @@ private struct CameraPreview: UIViewRepresentable {
         context.coordinator.session = session
 
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-              let input = try? AVCaptureDeviceInput(device: device) else {
-            return view
-        }
+              let input = try? AVCaptureDeviceInput(device: device) else { return view }
 
         if session.canAddInput(input) { session.addInput(input) }
-
         let output = AVCapturePhotoOutput()
         if session.canAddOutput(output) { session.addOutput(output) }
         context.coordinator.photoOutput = output
@@ -270,24 +255,13 @@ private struct CameraPreview: UIViewRepresentable {
         view.layer.addSublayer(preview)
         context.coordinator.previewLayer = preview
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            session.startRunning()
-        }
-
-        NotificationCenter.default.addObserver(
-            context.coordinator,
-            selector: #selector(Coordinator.capturePhoto),
-            name: .capturePhoto,
-            object: nil
-        )
-
+        DispatchQueue.global(qos: .userInitiated).async { session.startRunning() }
+        NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.capturePhoto), name: .capturePhoto, object: nil)
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        DispatchQueue.main.async {
-            context.coordinator.previewLayer?.frame = uiView.bounds
-        }
+        DispatchQueue.main.async { context.coordinator.previewLayer?.frame = uiView.bounds }
     }
 
     final class Coordinator: NSObject, AVCapturePhotoCaptureDelegate {
@@ -296,23 +270,13 @@ private struct CameraPreview: UIViewRepresentable {
         var previewLayer: AVCaptureVideoPreviewLayer?
         let onCapture: (UIImage) -> Void
 
-        init(onCapture: @escaping (UIImage) -> Void) {
-            self.onCapture = onCapture
-        }
+        init(onCapture: @escaping (UIImage) -> Void) { self.onCapture = onCapture }
 
-        @objc func capturePhoto() {
-            let settings = AVCapturePhotoSettings()
-            photoOutput?.capturePhoto(with: settings, delegate: self)
-        }
+        @objc func capturePhoto() { photoOutput?.capturePhoto(with: AVCapturePhotoSettings(), delegate: self) }
 
-        func photoOutput(_ output: AVCapturePhotoOutput,
-                         didFinishProcessingPhoto photo: AVCapturePhoto,
-                         error: Error?) {
-            guard let data = photo.fileDataRepresentation(),
-                  let image = UIImage(data: data) else { return }
-            DispatchQueue.main.async {
-                self.onCapture(image)
-            }
+        func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+            guard let data = photo.fileDataRepresentation(), let image = UIImage(data: data) else { return }
+            DispatchQueue.main.async { self.onCapture(image) }
         }
 
         deinit {
@@ -332,38 +296,18 @@ private struct CornerBracketsView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Top-left
-                corner(rotation: 0)
-                    .position(x: 0, y: 0)
-
-                // Top-right
-                corner(rotation: 90)
-                    .position(x: geo.size.width, y: 0)
-
-                // Bottom-left
-                corner(rotation: 270)
-                    .position(x: 0, y: geo.size.height)
-
-                // Bottom-right
-                corner(rotation: 180)
-                    .position(x: geo.size.width, y: geo.size.height)
+                corner(rotation: 0).position(x: 0, y: 0)
+                corner(rotation: 90).position(x: geo.size.width, y: 0)
+                corner(rotation: 270).position(x: 0, y: geo.size.height)
+                corner(rotation: 180).position(x: geo.size.width, y: geo.size.height)
             }
         }
     }
 
     private func corner(rotation: Double) -> some View {
         ZStack {
-            // Horizontal arm
-            Rectangle()
-                .fill(color)
-                .frame(width: length, height: thickness)
-                .offset(x: length / 2, y: thickness / 2)
-
-            // Vertical arm
-            Rectangle()
-                .fill(color)
-                .frame(width: thickness, height: length)
-                .offset(x: thickness / 2, y: length / 2)
+            Rectangle().fill(color).frame(width: length, height: thickness).offset(x: length/2, y: thickness/2)
+            Rectangle().fill(color).frame(width: thickness, height: length).offset(x: thickness/2, y: length/2)
         }
         .rotationEffect(.degrees(rotation))
     }
@@ -379,7 +323,6 @@ extension Notification.Name {
 
 #if DEBUG
 #Preview {
-    ScanView()
-        .environmentObject(TranslationManager())
+    ScanView().environmentObject(TranslationManager())
 }
 #endif
