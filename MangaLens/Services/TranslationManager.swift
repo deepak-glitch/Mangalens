@@ -1,33 +1,36 @@
 import SwiftUI
-import UIKit
+import Combine
 
 @MainActor
 final class TranslationManager: ObservableObject {
 
     // MARK: - Published State
 
-    @Published var translationMode: TranslationMode = .standard
+    @Published var translationMode: TranslationMode = .ai
     @Published var sourceLanguage: SourceLanguage = .auto
     @Published var isTranslating: Bool = false
     @Published var currentResults: [TranslationResult] = []
+    @Published var liveResults: [TranslationResult] = []
     @Published var scanHistory: [ScanSession] = []
     @Published var errorMessage: String? = nil
     @Published var translationStyle: TranslationStyle = .mangaTone
+    @Published var isLiveMode: Bool = false
 
     // MARK: - Services
 
     private let ocrService = OCRService()
     private let claudeService = ClaudeTranslationService()
-    private var ollamaService = OllamaTranslationService()
+    let screenCapture = ScreenCaptureService()
+
+    private var liveCancellable: AnyCancellable?
 
     // MARK: - Init
 
     init() {
         loadHistory()
-        syncOllamaSettings()
     }
 
-    // MARK: - Main Processing
+    // MARK: - Static Image Processing
 
     func processImage(_ image: UIImage) async {
         isTranslating = true
@@ -36,7 +39,6 @@ final class TranslationManager: ObservableObject {
 
         defer { isTranslating = false }
 
-        // 1. OCR
         let blocks: [DetectedTextBlock]
         do {
             blocks = try await ocrService.detectText(in: image)
@@ -48,65 +50,103 @@ final class TranslationManager: ObservableObject {
             return
         }
 
-        // 2. Translate each block
         var results: [TranslationResult] = []
-        var encounteredError: String? = nil
+        var firstError: String? = nil
 
         for block in blocks {
             let lang: SourceLanguage = sourceLanguage == .auto ? block.detectedLanguage : sourceLanguage
-
             do {
-                let translated: String
-                switch translationMode {
-                case .ai:
-                    translated = try await claudeService.translate(block.detectedString, from: lang)
-                case .standard:
-                    syncOllamaSettings()
-                    translated = try await ollamaService.translate(block.detectedString, from: lang)
-                }
-
-                let result = TranslationResult(
+                let translated = try await translateBlock(block.detectedString, language: lang)
+                results.append(TranslationResult(
                     originalText: block.detectedString,
                     translatedText: translated,
                     sourceLanguage: lang,
                     boundingBox: block.boundingBox,
                     translationMode: translationMode
-                )
-                results.append(result)
-
+                ))
             } catch {
-                // Record first error but continue processing remaining blocks
-                if encounteredError == nil {
-                    encounteredError = error.localizedDescription
-                }
+                if firstError == nil { firstError = error.localizedDescription }
             }
         }
 
         currentResults = results
 
-        // 3. Save session if we got results
         if !results.isEmpty {
-            let session = ScanSession(
-                sourceImage: image,
-                results: results,
-                language: sourceLanguage
-            )
+            let session = ScanSession(sourceImage: image, results: results, language: sourceLanguage)
             scanHistory.insert(session, at: 0)
             saveHistory()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }
 
-        if results.isEmpty, let err = encounteredError {
-            errorMessage = err
-        } else if let err = encounteredError {
-            // Partial failure — surface warning
-            errorMessage = "Some translations failed: \(err)"
-        }
-
-        // Haptic feedback
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        if results.isEmpty, let err = firstError { errorMessage = err }
     }
 
-    // MARK: - History Management
+    // MARK: - Live Mode
+
+    func startLiveMode() async throws {
+        liveResults = []
+        try await screenCapture.startCapture()
+        isLiveMode = true
+
+        // Observe every new frame published by ScreenCaptureService
+        liveCancellable = screenCapture.$latestFrame
+            .compactMap { $0 }
+            .sink { [weak self] frame in
+                guard let self else { return }
+                Task { await self.processLiveFrame(frame) }
+            }
+    }
+
+    func stopLiveMode() async {
+        liveCancellable?.cancel()
+        liveCancellable = nil
+        await screenCapture.stopCapture()
+        isLiveMode = false
+        liveResults = []
+    }
+
+    private func processLiveFrame(_ frame: CapturedFrame) async {
+        guard frame.textBlocks.isEmpty == false else {
+            liveResults = []
+            return
+        }
+
+        var results: [TranslationResult] = []
+        for block in frame.textBlocks {
+            let lang: SourceLanguage = sourceLanguage == .auto ? block.detectedLanguage : sourceLanguage
+            do {
+                let translated = try await translateBlock(block.detectedString, language: lang)
+                results.append(TranslationResult(
+                    originalText: block.detectedString,
+                    translatedText: translated,
+                    sourceLanguage: lang,
+                    boundingBox: block.boundingBox,
+                    translationMode: translationMode
+                ))
+            } catch {
+                // Silently skip blocks that fail in live mode to avoid alert spam
+            }
+        }
+
+        liveResults = results
+        if !results.isEmpty {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        }
+    }
+
+    // MARK: - Translation Dispatch
+
+    private func translateBlock(_ text: String, language: SourceLanguage) async throws -> String {
+        switch translationMode {
+        case .ai:
+            return try await claudeService.translate(text, from: language)
+        case .standard:
+            // Standard mode (Ollama) is Phase 2 — not yet implemented
+            throw TranslationManagerError.standardModeUnavailable
+        }
+    }
+
+    // MARK: - History
 
     func deleteSession(_ session: ScanSession) {
         scanHistory.removeAll { $0.id == session.id }
@@ -118,19 +158,10 @@ final class TranslationManager: ObservableObject {
         saveHistory()
     }
 
-    // MARK: - Ollama Settings Sync
-
-    func syncOllamaSettings() {
-        ollamaService = OllamaTranslationService()
-    }
-
-    func checkOllamaConnection() async -> Bool {
-        syncOllamaSettings()
-        return await ollamaService.checkConnection()
-    }
+    // MARK: - Connection Tests
 
     func testClaudeConnection() async -> Result<String, ClaudeError> {
-        return await claudeService.testConnection()
+        await claudeService.testConnection()
     }
 
     // MARK: - Persistence
@@ -138,20 +169,26 @@ final class TranslationManager: ObservableObject {
     private let historyKey = "MangaLens_ScanHistory"
 
     private func saveHistory() {
-        do {
-            let data = try JSONEncoder().encode(scanHistory)
-            UserDefaults.standard.set(data, forKey: historyKey)
-        } catch {
-            print("Failed to save history: \(error)")
-        }
+        guard let data = try? JSONEncoder().encode(scanHistory) else { return }
+        UserDefaults.standard.set(data, forKey: historyKey)
     }
 
     private func loadHistory() {
-        guard let data = UserDefaults.standard.data(forKey: historyKey) else { return }
-        do {
-            scanHistory = try JSONDecoder().decode([ScanSession].self, from: data)
-        } catch {
-            print("Failed to load history: \(error)")
+        guard let data = UserDefaults.standard.data(forKey: historyKey),
+              let decoded = try? JSONDecoder().decode([ScanSession].self, from: data) else { return }
+        scanHistory = decoded
+    }
+}
+
+// MARK: - Errors
+
+enum TranslationManagerError: LocalizedError {
+    case standardModeUnavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .standardModeUnavailable:
+            return "Standard Mode (Ollama) is coming in Phase 2. Please use AI Mode."
         }
     }
 }

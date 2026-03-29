@@ -24,6 +24,11 @@
 		B001000115000001 /* VersionSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001000115000001 /* VersionSwitcher.swift */; };
 		B001000116000001 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A001000116000001 /* Info.plist */; };
 		B001000117000001 /* Config.plist in Resources */ = {isa = PBXBuildFile; fileRef = A001000117000001 /* Config.plist */; };
+		B001000118000001 /* ScreenCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001000118000001 /* ScreenCaptureService.swift */; };
+		B001000119000001 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001000119000001 /* SupabaseService.swift */; };
+		B001000120000001 /* LiveScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001000120000001 /* LiveScanView.swift */; };
+		B001000121000001 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001000121000001 /* LoginView.swift */; };
+		B001000122000001 /* SignupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001000122000001 /* SignupView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +49,11 @@
 		A001000115000001 /* VersionSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionSwitcher.swift; sourceTree = "<group>"; };
 		A001000116000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A001000117000001 /* Config.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Config.plist; sourceTree = "<group>"; };
+		A001000118000001 /* ScreenCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureService.swift; sourceTree = "<group>"; };
+		A001000119000001 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
+		A001000120000001 /* LiveScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScanView.swift; sourceTree = "<group>"; };
+		A001000121000001 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		A001000122000001 /* SignupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupView.swift; sourceTree = "<group>"; };
 		F001000001000001 /* MangaLens.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MangaLens.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -97,8 +107,19 @@
 				A001000104000001 /* TranslationOverlayView.swift */,
 				A001000105000001 /* HistoryView.swift */,
 				A001000106000001 /* SettingsView.swift */,
+				A001000120000001 /* LiveScanView.swift */,
+				G001000021000001 /* Auth */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		G001000021000001 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				A001000121000001 /* LoginView.swift */,
+				A001000122000001 /* SignupView.swift */,
+			);
+			path = Auth;
 			sourceTree = "<group>";
 		};
 		G001000030000001 /* Models */ = {
@@ -117,6 +138,8 @@
 				A001000110000001 /* ClaudeTranslationService.swift */,
 				A001000111000001 /* OllamaTranslationService.swift */,
 				A001000112000001 /* TranslationManager.swift */,
+				A001000118000001 /* ScreenCaptureService.swift */,
+				A001000119000001 /* SupabaseService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -224,6 +247,11 @@
 				B001000113000001 /* TranslationBubble.swift in Sources */,
 				B001000114000001 /* LanguageToggle.swift in Sources */,
 				B001000115000001 /* VersionSwitcher.swift in Sources */,
+				B001000118000001 /* ScreenCaptureService.swift in Sources */,
+				B001000119000001 /* SupabaseService.swift in Sources */,
+				B001000120000001 /* LiveScanView.swift in Sources */,
+				B001000121000001 /* LoginView.swift in Sources */,
+				B001000122000001 /* SignupView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

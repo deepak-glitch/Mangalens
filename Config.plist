@@ -2,8 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Anthropic Claude API key — get yours at console.anthropic.com -->
 	<key>ClaudeAPIKey</key>
 	<string></string>
+
+	<!-- Supabase project URL — e.g. https://xyzxyzxyz.supabase.co -->
+	<key>SupabaseURL</key>
+	<string></string>
+
+	<!-- Supabase anon/public key — found in Project Settings → API -->
+	<key>SupabaseAnonKey</key>
+	<string></string>
+
+	<!-- Ollama (Phase 2) -->
 	<key>OllamaServerURL</key>
 	<string>http://localhost:11434</string>
 	<key>OllamaModel</key>
