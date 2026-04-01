@@ -1,2 +1,0 @@
-# Mangalens
-Translator 
