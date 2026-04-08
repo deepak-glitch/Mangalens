@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:300px; padding:16px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#1a1a1a; font-size:14px; background:#fff; }
+  .header { display:flex; align-items:center; gap:9px; margin-bottom:16px; }
+  .logo { width:30px;height:30px;background:#6B2CF5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px; }
+  .header-title { font-size:15px;font-weight:700;color:#111; }
+  .header-ver { font-size:11px;color:#aaa;margin-left:auto; }
+
+  .field-label { display:block;font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;margin-top:12px; }
+
+  .provider-tabs { display:flex;gap:4px;margin-top:12px;flex-wrap:wrap; }
+  .tab { flex:1;min-width:60px;padding:6px 4px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:10px;font-weight:600;cursor:pointer;text-align:center;background:#fafafa;color:#666;transition:all .15s;white-space:nowrap; }
+  .tab.active { background:#6B2CF5;color:#fff;border-color:#6B2CF5; }
+  .tab:hover:not(.active) { border-color:#6B2CF5;color:#6B2CF5; }
+
+  .provider-section { display:none; }
+  .provider-section.active { display:block; }
+
+  input[type="password"], input[type="text"], select {
+    width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:7px;
+    font-size:13px;color:#1a1a1a;background:#fff;outline:none;
+    transition:border-color .15s;appearance:none;-webkit-appearance:none;font-family:inherit;
+  }
+  input:focus, select:focus { border-color:#6B2CF5; }
+  .select-wrap { position:relative; }
+  .select-wrap::after { content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:#999;pointer-events:none; }
+
+  .key-hint { font-size:10px;color:#aaa;margin-top:3px; }
+  .key-hint a { color:#6B2CF5;text-decoration:none; }
+
+  .ollama-status { font-size:11px;margin-top:6px;padding:5px 8px;border-radius:5px;background:#f5f5f5;color:#888; }
+  .ollama-status.ok  { background:#f0fff4;color:#2a7a2a; }
+  .ollama-status.err { background:#fff0f0;color:#cc3333; }
+
+  .btn { display:block;width:100%;padding:9px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;transition:background .15s;font-family:inherit; }
+  .btn:active { transform:scale(.98); }
+  .btn-primary { background:#6B2CF5;color:#fff; }
+  .btn-primary:hover { background:#5621D4; }
+  .btn-secondary { background:#f2f2f2;color:#333; }
+  .btn-secondary:hover { background:#e8e8e8; }
+  .btn-sm { padding:6px 10px;font-size:12px;width:auto;display:inline-block;margin-top:6px; }
+
+  hr { border:none;border-top:1px solid #f0f0f0;margin:14px 0 4px; }
+
+  .toggle-row { display:flex;align-items:center;justify-content:space-between;padding:8px 0; }
+  .toggle-label { font-size:13px;color:#333;font-weight:500; }
+  .toggle-sub { font-size:10px;color:#aaa; }
+  .toggle-track { width:34px;height:20px;background:#ddd;border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0; }
+  .toggle-track.on { background:#6B2CF5; }
+  .toggle-thumb { position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .toggle-track.on .toggle-thumb { left:16px; }
+
+  .status { text-align:center;font-size:12px;margin-top:8px;min-height:16px;color:#aaa;transition:color .2s; }
+  .status.ok  { color:#2a9a2a; }
+  .status.err { color:#cc3333; }
+
+  .footer { margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between; }
+  .footer-link { font-size:11px;color:#bbb;cursor:pointer;text-decoration:none; }
+  .footer-link:hover { color:#6B2CF5; }
+  .stats { font-size:11px;color:#bbb;text-align:center;margin-top:4px; }
+
+  .badge { display:inline-block;font-size:9px;padding:1px 4px;border-radius:4px;font-weight:700;vertical-align:middle;margin-left:2px; }
+  .badge-free  { background:#e8f5e9;color:#2a7a2a; }
+  .badge-cheap { background:#fff3e0;color:#e65100; }
+  .badge-smart { background:#ede8ff;color:#6B2CF5; }
+  .badge-nano  { background:#e3f2fd;color:#1565c0; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">M</div>
+    <div><div class="header-title">MangaLens</div></div>
+    <span class="header-ver">v4</span>
+  </div>
+
+  <div class="field-label">AI Provider</div>
+  <div class="provider-tabs">
+    <div class="tab active" id="tab-claude">Claude <span class="badge badge-smart">Best</span></div>
+    <div class="tab" id="tab-openai">GPT-4o <span class="badge badge-cheap">Fast</span></div>
+    <div class="tab" id="tab-nano">4.1 Nano <span class="badge badge-nano">Cheap</span></div>
+    <div class="tab" id="tab-ollama">Ollama <span class="badge badge-free">Free</span></div>
+  </div>
+
+  <!-- Claude -->
+  <div class="provider-section active" id="section-claude">
+    <label class="field-label">Claude API key</label>
+    <input type="password" id="claudeKey" placeholder="sk-ant-api03-…" autocomplete="off">
+    <div class="key-hint">Get a key at <a href="#" id="link-claude">console.anthropic.com</a></div>
+  </div>
+
+  <!-- OpenAI GPT-4o mini -->
+  <div class="provider-section" id="section-openai">
+    <label class="field-label">OpenAI API key</label>
+    <input type="password" id="openaiKey" placeholder="sk-…" autocomplete="off">
+    <div class="key-hint">GPT-4o mini · <a href="#" id="link-openai">platform.openai.com/api-keys</a></div>
+  </div>
+
+  <!-- GPT-4.1 Nano -->
+  <div class="provider-section" id="section-nano">
+    <label class="field-label">OpenAI API key</label>
+    <input type="password" id="openaiKeyNano" placeholder="sk-…" autocomplete="off">
+    <div class="key-hint">GPT-4.1 Nano — fastest &amp; cheapest OpenAI model · <a href="#" id="link-nano">platform.openai.com/api-keys</a></div>
+  </div>
+
+  <!-- Ollama -->
+  <div class="provider-section" id="section-ollama">
+    <label class="field-label">Ollama model</label>
+    <input type="text" id="ollamaModel" placeholder="minicpm-v:latest" value="minicpm-v:latest">
+    <div class="key-hint">Runs locally — no API key needed · <a href="#" id="link-ollama">ollama.com</a></div>
+    <div class="ollama-status" id="ollamaStatus">Click "Check" to verify Ollama is running</div>
+    <button class="btn btn-secondary btn-sm" id="checkOllama">🔍 Check connection</button>
+  </div>
+
+  <!-- Shared -->
+  <label class="field-label">Translate to</label>
+  <div class="select-wrap">
+    <select id="lang">
+      <option value="English">English</option>
+      <option value="Spanish">Spanish</option>
+      <option value="French">French</option>
+      <option value="German">German</option>
+      <option value="Portuguese">Portuguese</option>
+      <option value="Italian">Italian</option>
+      <option value="Simplified Chinese">Simplified Chinese</option>
+      <option value="Traditional Chinese">Traditional Chinese</option>
+    </select>
+  </div>
+
+  <button class="btn btn-primary" id="save">Save settings</button>
+
+  <hr>
+
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">⚡ Auto-translate on scroll</div>
+      <div class="toggle-sub">Translates panels as you scroll down</div>
+    </div>
+    <div class="toggle-track" id="autoToggle"><div class="toggle-thumb"></div></div>
+  </div>
+
+  <button class="btn btn-secondary" id="translateAll">🌐 Translate all visible panels</button>
+
+  <div class="status" id="status"></div>
+  <div class="stats"  id="stats"></div>
+
+  <div class="footer">
+    <span class="footer-link" id="clearCache">🗑 Clear cache</span>
+    <span class="footer-link" id="openDocs">API keys ↗</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

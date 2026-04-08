@@ -1,0 +1,80 @@
+/* MangaLens — overlay.css v3 */
+
+/* ── Translate button ── */
+.ml-btn {
+  position: absolute; top: 8px; right: 8px; z-index: 10000;
+  background: #6B2CF5; color: #fff; border: none; border-radius: 8px;
+  padding: 6px 14px; font-size: 12px; font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  cursor: pointer; opacity: 0; transition: opacity 0.2s, background 0.15s;
+  pointer-events: auto; white-space: nowrap; line-height: 1.4;
+}
+.ml-btn:hover:not(:disabled) { background: #5621D4; }
+.ml-btn:disabled { cursor: default; opacity: 1 !important; }
+
+/* ── Auto badge ── */
+.ml-auto-badge {
+  position: absolute; top: 8px; left: 8px; z-index: 10000;
+  background: rgba(107, 44, 245, 0.85); color: #fff;
+  border-radius: 6px; padding: 3px 8px;
+  font-size: 11px; font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  pointer-events: none; animation: ml-pulse 1.5s ease-in-out infinite;
+}
+@keyframes ml-pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+/* ── Overlay container ── */
+.ml-overlay {
+  position: absolute; top: 0; left: 0;
+  pointer-events: none; z-index: 9999; overflow: visible;
+}
+
+/* ── Base bubble ── */
+.ml-bubble {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  border-radius: 10px;
+  padding: 5px 9px;
+  font-family: 'Noto Sans', 'Noto Sans KR', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px; line-height: 1.4; color: #111;
+  max-width: 195px; min-width: 55px;
+  word-wrap: break-word; word-break: break-word;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
+  cursor: default; pointer-events: auto;
+  transform: translateX(-50%);
+  transition: box-shadow 0.15s;
+}
+.ml-bubble:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.24); z-index: 10001; }
+
+/* ── Bubble variants ── */
+.ml-type-sfx {
+  background: rgba(255, 243, 185, 0.97);
+  border-color: rgba(180, 130, 0, 0.2);
+  font-weight: 800; font-size: 14px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.ml-type-thought {
+  background: rgba(238, 244, 255, 0.96);
+  border-style: dashed; border-color: rgba(90, 110, 200, 0.3);
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+}
+.ml-type-narration {
+  background: rgba(215, 232, 255, 0.96);
+  border-color: rgba(70, 110, 200, 0.2);
+  border-radius: 4px; font-style: italic;
+}
+.ml-type-sign {
+  background: rgba(255, 238, 215, 0.96);
+  border-color: rgba(170, 110, 50, 0.2);
+  border-radius: 4px; font-weight: 500;
+}
+
+/* ── Original text on hover ── */
+.ml-translation { display: block; }
+.ml-original {
+  display: none; font-size: 10px; color: #888;
+  margin-top: 4px; padding-top: 4px;
+  border-top: 1px solid #eaeaea;
+}
+.ml-bubble:hover .ml-original { display: block; }
